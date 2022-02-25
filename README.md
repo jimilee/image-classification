@@ -1,7 +1,4 @@
 # <div align="center">SOTA Image Classification Models in PyTorch</div>
-
-![visiontransformer](assests/vit_banner.png)
-
 ## <div align="center">Model Zoo</div>
 
 [micronet]: https://arxiv.org/abs/2108.05894v1
