@@ -1,12 +1,5 @@
 # <div align="center">SOTA Image Classification Models in PyTorch</div>
 
-<div align="center">
-<p>Intended for easy to use and integrate SOTA image classification models into object detection, semantic segmentation, pose estimation, etc.</p>
-
-<a href="https://colab.research.google.com/github/sithu31296/image-classification/blob/main/tutorial.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
-
-</div>
-
 ![visiontransformer](assests/vit_banner.png)
 
 ## <div align="center">Model Zoo</div>
