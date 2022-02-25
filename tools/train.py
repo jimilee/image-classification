@@ -14,8 +14,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 import sys
 sys.path.insert(0, '.')
-from datasets import ImageNet, get_sampler
-from datasets.transforms import get_train_transforms, get_val_transforms
+from datasets.CIFAR import ImageNet, get_sampler
+from datasets.CIFAR import get_train_transforms, get_val_transforms
 from models import get_model
 from utils.utils import fix_seeds, setup_cudnn, setup_ddp, cleanup_ddp
 from utils.schedulers import get_scheduler

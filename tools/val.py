@@ -9,8 +9,7 @@ from torch.utils.data import DataLoader
 import sys
 sys.path.insert(0, '.')
 from models import get_model
-from datasets import ImageNet
-from datasets.transforms import get_val_transforms
+from datasets.CIFAR import get_val_transforms
 from utils.utils import setup_cudnn
 from utils.metrics import accuracy
 

@@ -9,7 +9,6 @@ from tabulate import tabulate
 from torch.nn.parallel import DistributedDataParallel as DDP
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
-from torchvision.datasets import CIFAR10
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.tensorboard import SummaryWriter
 import sys
@@ -17,14 +16,13 @@ import cv2
 import pandas as pd
 
 sys.path.insert(0, '.')
-from datasets import get_sampler
-from datasets.transforms import get_train_transforms, get_val_transforms
+from datasets.CIFAR import get_sampler
 from models import get_model
 from utils.utils import fix_seeds, setup_cudnn, setup_ddp, cleanup_ddp
+from utils.metrics import accuracy
 from utils.schedulers import get_scheduler
 from utils.losses import LabelSmoothCrossEntropy, CrossEntropyLoss
 from utils.optimizers import get_optimizer
-from val import evaluate
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from sklearn.preprocessing import LabelEncoder
@@ -35,7 +33,7 @@ TRAIN_DIR = 'C:/_dataset/happy-whale-and-dolphin/train_images/'
 TEST_DIR = 'C:/_dataset/happy-whale-and-dolphin/test_images/'
 
 CONFIG = {"seed": 2022,
-          "epochs": 10,
+          "epochs": 5,
           "img_size": 448,
           "model_name": "CSWin",
           'VARIANT': "B",
@@ -57,6 +55,26 @@ CONFIG = {"seed": 2022,
           "easy_margin": False
           }
 
+
+@torch.no_grad()
+def evaluate(dataloader, model, device):
+    print('Evaluating...')
+    model.eval()
+    top1_acc, top5_acc = 0.0, 0.0
+
+    for img, lbl in tqdm(dataloader):
+        img = img.to(device)
+        lbl = lbl.to(device)
+
+        pred = model(img)
+        acc1, acc5 = accuracy(pred, lbl, topk=(1, 5))
+        top1_acc += acc1 * img.shape[0]
+        top5_acc += acc5 * img.shape[0]
+
+    top1_acc /= len(dataloader.dataset)
+    top5_acc /= len(dataloader.dataset)
+
+    return 100 * top1_acc, 100 * top5_acc
 
 def get_train_file_path(id):
     return f"{TRAIN_DIR}/{id}"
@@ -145,17 +163,6 @@ def main(cfg, gpu, save_dir):
     epochs = train_cfg['EPOCHS']
     lr = optim_cfg['LR']
 
-    # # augmentations
-    # train_transforms = get_train_transforms(train_cfg['IMAGE_SIZE'])
-    # val_transforms = get_val_transforms(eval_cfg['IMAGE_SIZE'])
-    #
-    # # dataset
-    # train_dataset = CIFAR10(cfg['DATASET']['ROOT'], True, train_transforms)
-    # val_dataset = CIFAR10(cfg['DATASET']['ROOT'], False, val_transforms)
-    #
-    # # dataset sampler
-    # train_sampler, val_sampler = get_sampler(train_cfg['DDP'], train_dataset, val_dataset)
-    
     # dataloader
     train_loader, valid_loader = prepare_loaders(df, fold=0)
 

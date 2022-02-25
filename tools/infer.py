@@ -9,7 +9,7 @@ from torchvision import transforms as T
 import sys
 sys.path.insert(0, '.')
 from models import get_model
-from datasets import ImageNet
+from datasets.CIFAR import ImageNet
 
 
 class Model:
