@@ -116,8 +116,8 @@ File: assests\dog.jpg >>>>> Golden retriever
 </details>
 
 <br>
-<details>
-  <summary><strong>Training</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>Training</strong></summary>
 
 ```bash
 $ python tools/train.py --cfg configs/train.yaml
@@ -126,8 +126,8 @@ $ python tools/train.py --cfg configs/train.yaml
 </details>
 
 <br>
-<details>
-  <summary><strong>Evaluate</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>Evaluate</strong></summary>
 
 ```bash
 $ python tools/val.py --cfg configs/train.yaml
@@ -136,8 +136,8 @@ $ python tools/val.py --cfg configs/train.yaml
 </details>
 
 <br>
-<details>
-  <summary><strong>Fine-tune</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>Fine-tune</strong></summary>
 
 Fine-tune on CIFAR-10:
 
@@ -148,8 +148,8 @@ $ python tools/finetune.py --cfg configs/finetune.yaml
 </details>
 
 <br>
-<details>
-  <summary><strong>References</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>References</strong></summary>
 
 * https://github.com/rwightman/pytorch-image-models
 * https://github.com/facebookresearch/deit
@@ -158,7 +158,7 @@ $ python tools/finetune.py --cfg configs/finetune.yaml
 
 <br>
 <details>
-  <summary><strong>Citations</strong> (click to expand)</summary>
+  <summary><strong>Citations</strong></summary>
 
 ```
 @misc{li2021micronet,
