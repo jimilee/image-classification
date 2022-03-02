@@ -3,6 +3,10 @@ import torch
 import yaml
 import time
 import multiprocessing as mp
+import cv2
+import pandas as pd
+
+from val import evaluate
 from pprint import pprint
 from tqdm import tqdm
 from tabulate import tabulate
@@ -12,8 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.tensorboard import SummaryWriter
 import sys
-import cv2
-import pandas as pd
+
 
 sys.path.insert(0, '.')
 from datasets.CIFAR import get_sampler
@@ -27,130 +30,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
+from datasets.HappyWhale import HappyWhale
 
-ROOT_DIR = 'C:/_dataset/happy-whale-and-dolphin/'
-TRAIN_DIR = 'C:/_dataset/happy-whale-and-dolphin/train_images/'
-TEST_DIR = 'C:/_dataset/happy-whale-and-dolphin/test_images/'
-
-CONFIG = {"seed": 2022,
-          "epochs": 5,
-          "img_size": 448,
-          "model_name": "CSWin",
-          'VARIANT': "B",
-          "num_classes": 15587,
-          "train_batch_size": 8,
-          "valid_batch_size": 8,
-          "learning_rate": 1e-4,
-          "scheduler": 'CosineAnnealingLR',
-          "min_lr": 1e-6,
-          "T_max": 500,
-          "weight_decay": 1e-6,
-          "n_fold": 5,
-          "n_accumulate": 1,
-          "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-          # ArcFace Hyperparameters
-          "s": 30.0,
-          "m": 0.50,
-          "ls_eps": 0.0,
-          "easy_margin": False
-          }
-
-
-@torch.no_grad()
-def evaluate(dataloader, model, device):
-    print('Evaluating...')
-    model.eval()
-    top1_acc, top5_acc = 0.0, 0.0
-
-    for img, lbl in tqdm(dataloader):
-        img = img.to(device)
-        lbl = lbl.to(device)
-
-        pred = model(img)
-        acc1, acc5 = accuracy(pred, lbl, topk=(1, 5))
-        top1_acc += acc1 * img.shape[0]
-        top5_acc += acc5 * img.shape[0]
-
-    top1_acc /= len(dataloader.dataset)
-    top5_acc /= len(dataloader.dataset)
-
-    return 100 * top1_acc, 100 * top5_acc
-
-def get_train_file_path(id):
-    return f"{TRAIN_DIR}/{id}"
-df = pd.read_csv(f"{ROOT_DIR}/train.csv")
-df['file_path'] = df['image'].apply(get_train_file_path)
-df.head()
-data_size = len(df)
-
-encoder = LabelEncoder()
-df['individual_id'] = encoder.fit_transform(df['individual_id'])
-
-skf = StratifiedKFold(n_splits=CONFIG['n_fold'])
-
-for fold, ( _, val_) in enumerate(skf.split(X=df, y=df.individual_id)):
-      df.loc[val_ , "kfold"] = fold
-
-class HappyWhaleDataset(Dataset):
-    def __init__(self, df, transforms=None):
-        self.df = df
-        self.file_names = df['file_path'].values
-        self.labels = df['individual_id'].values
-        self.transforms = transforms
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, index):
-        img_path = self.file_names[index]
-        img = cv2.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, dsize=(CONFIG['img_size'], CONFIG['img_size']))
-        label = self.labels[index]
-
-        if self.transforms:
-            img = self.transforms(image=img)["image"]
-
-        return img, torch.tensor(label, dtype=torch.long)
-#
-data_transforms = {
-    "train": A.Compose([
-        A.Resize(CONFIG['img_size'], CONFIG['img_size']),
-        A.HorizontalFlip(p=0.5),
-        A.VerticalFlip(p=0.5),
-        A.Rotate(limit=30, p=0.5),
-        A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-            max_pixel_value=255.0,
-            p=1.0
-        ),
-        ToTensorV2()], p=1.),
-
-    "valid": A.Compose([
-        A.Resize(CONFIG['img_size'], CONFIG['img_size']),
-        A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-            max_pixel_value=255.0,
-            p=1.0
-        ),
-        ToTensorV2()], p=1.)
-}
-
-def prepare_loaders(df, fold):
-    df_train = df[df.kfold != fold].reset_index(drop=True)
-    df_valid = df[df.kfold == fold].reset_index(drop=True)
-
-    train_dataset = HappyWhaleDataset(df_train, transforms=data_transforms["train"])
-    valid_dataset = HappyWhaleDataset(df_valid, transforms=data_transforms["valid"])
-
-    train_loader = DataLoader(train_dataset, batch_size=CONFIG['train_batch_size'],
-                              num_workers=0, shuffle=True, pin_memory=True, drop_last=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=CONFIG['valid_batch_size'],
-                              num_workers=0, shuffle=False, pin_memory=True)
-
-    return train_loader, valid_loader
 
 def main(cfg, gpu, save_dir):
     start = time.time()
@@ -158,16 +39,18 @@ def main(cfg, gpu, save_dir):
     num_workers = mp.cpu_count()
     device = torch.device(cfg['DEVICE'])
     train_cfg = cfg['TRAIN']
-    eval_cfg = cfg['EVAL']
     optim_cfg = cfg['OPTIMIZER']
     epochs = train_cfg['EPOCHS']
     lr = optim_cfg['LR']
 
+    # dataset
+    HappyWhaleDataset = HappyWhale().get_DataSet()
+
     # dataloader
-    train_loader, valid_loader = prepare_loaders(df, fold=0)
+    train_loader, valid_loader, classes, len_of_train =HappyWhaleDataset.prepare_loaders()
 
     # training model
-    model = get_model(cfg['MODEL']['NAME'], cfg['MODEL']['VARIANT'], None, CONFIG['num_classes'], train_cfg['IMAGE_SIZE'][0])
+    model = get_model(cfg['MODEL']['NAME'], cfg['MODEL']['VARIANT'], None, classes, train_cfg['IMAGE_SIZE'][0])
     ## some models pretrained weights have extra keys, so check them in pretrained loading in model construction
     pretrained_dict = torch.load(cfg['MODEL']['PRETRAINED'], map_location='cpu')
     model.load_state_dict(pretrained_dict, strict=False)
@@ -178,7 +61,9 @@ def main(cfg, gpu, save_dir):
                 p.requires_grad_ = False
                 
     model = model.to(device)
-
+    # model2 = timm.create_model('tf_efficientnet_b0_ns', pretrained=True)
+    # print(model)
+    # print(model2)
     if train_cfg['DDP']: model = DDP(model, device_ids=[gpu])
 
     # loss function, optimizer, scheduler, AMP scaler, tensorboard writer
@@ -187,7 +72,7 @@ def main(cfg, gpu, save_dir):
     scheduler = get_scheduler(cfg['SCHEDULER'], optimizer)
     scaler = GradScaler(enabled=train_cfg['AMP'])
     writer = SummaryWriter(save_dir / 'logs')
-    iters_per_epoch = data_size // CONFIG['train_batch_size']
+    iters_per_epoch = len_of_train // train_cfg['BATCH_SIZE']
 
     for epoch in range(epochs):
         model.train()
@@ -224,14 +109,14 @@ def main(cfg, gpu, save_dir):
             # evaluate the model
             top1_acc, top5_acc = evaluate(valid_loader, model, device)
 
-            print(f"Top-1 Accuracy: {top1_acc:>0.1f} Top-5 Accuracy: {top5_acc:>0.1f}")
+            print(f"Top-1 Accuracy: {top1_acc:>0.1f} Top-5 Accuracy: {top5_acc:>0.1f} best_top1_acc: {best_top1_acc:>0.1f}")
             writer.add_scalar('val/Top1_Acc', top1_acc, epoch)
             writer.add_scalar('val/Top5_Acc', top5_acc, epoch)
 
             if top1_acc > best_top1_acc:
                 best_top1_acc = top1_acc
                 best_top5_acc = top5_acc
-                torch.save(model.module.state_dict() if train_cfg['DDP'] else model.state_dict(), save_dir / f"{cfg['MODEL']['NAME']}_{cfg['MODEL']['VARIANT']}.pth")
+                torch.save(model.module.state_dict() if train_cfg['DDP'] else model.state_dict(), save_dir / f"{top1_acc}_{cfg['MODEL']['NAME']}_{cfg['MODEL']['VARIANT']}.pth")
             print(f"Best Top-1 Accuracy: {best_top1_acc:>0.1f} Best Top-5 Accuracy: {best_top5_acc:>0.5f}")
         
     writer.close()

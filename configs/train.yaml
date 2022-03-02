@@ -5,30 +5,30 @@ DATASET:
   ROOT: ''
 
 MODEL:
-  NAME: ResT
-  VARIANT: S
+  NAME: CSWin
+  VARIANT: B
 
 KD:
   ENABLE: false
   ALPHA: 0.9
   TEMP: 10
   TEACHER:
-    NAME: ResT
-    VARIANT: L
-    PRETRAINED: 'checkpoints/rest/rest_large.pth'
+    NAME: CSWin
+    VARIANT: B
+    PRETRAINED: 'C:/_workspace/k_HappyWhale/models/cswin_base_224.pth'
 
 TRAIN:
-  IMAGE_SIZE: [224, 224]
+  IMAGE_SIZE: [672, 672]
   EPOCHS: 300
-  BATCH_SIZE: 8
+  BATCH_SIZE: 2
   EVAL_INTERVAL: 20
   AMP: true
   DDP: false
 
 EVAL:
-  IMAGE_SIZE: [224, 224]
-  BATCH_SIZE: 8
-  MODEL_PATH: 'output/rest_S.pth'
+  IMAGE_SIZE: [672, 672]
+  BATCH_SIZE: 2
+  MODEL_PATH: 'output/CSWin_672_base.pth'
 
 OPTIMIZER:
   NAME: adamw

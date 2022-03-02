@@ -2,6 +2,7 @@ import os
 import torch.distributed as dist
 from torch.utils.data import SequentialSampler, DistributedSampler, RandomSampler
 from .imagenet import ImageNet
+from .HappyWhale import HappyWhale, HappyWhaleDataset
 from torchvision import datasets, transforms as T
 
 
@@ -30,3 +31,4 @@ def get_dataset(dataset_name, root, split, transform, num_classes):
         dataset = datasets.ImageFolder(data_path, transform)
         num_classes = num_classes
     return dataset, num_classes
+

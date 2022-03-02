@@ -11,16 +11,16 @@ MODEL:
   FREEZE: false
 
 TRAIN:
-  IMAGE_SIZE: [448, 448]
-  EPOCHS: 2
-  BATCH_SIZE: 8
+  IMAGE_SIZE: [672, 672]
+  EPOCHS: 3
+  BATCH_SIZE: 2
   EVAL_INTERVAL: 20
   AMP: true
   DDP: false
 
 EVAL:
-  IMAGE_SIZE: [448, 448]
-  BATCH_SIZE: 8
+  IMAGE_SIZE: [672, 672]
+  BATCH_SIZE: 2
   MODEL_PATH: 'output/cswin_base_224.pth'
 
 OPTIMIZER:

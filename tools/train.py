@@ -14,8 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import sys
 sys.path.insert(0, '.')
-from datasets.CIFAR import ImageNet, get_sampler
-from datasets.CIFAR import get_train_transforms, get_val_transforms
+from datasets.HappyWhale import HappyWhale
 from models import get_model
 from utils.utils import fix_seeds, setup_cudnn, setup_ddp, cleanup_ddp
 from utils.schedulers import get_scheduler
@@ -36,23 +35,15 @@ def main(cfg, gpu, save_dir):
     epochs = train_cfg['EPOCHS']
     lr = optim_cfg['LR']
 
-    # augmentations
-    train_transforms = get_train_transforms(train_cfg['IMAGE_SIZE'])
-    val_transforms = get_val_transforms(eval_cfg['IMAGE_SIZE'])
-
     # dataset
-    train_dataset = ImageNet(cfg['DATASET']['ROOT'], 'train', train_transforms)
-    val_dataset = ImageNet(cfg['DATASET']['ROOT'], 'val', val_transforms)
+    HappyWhaleDataset = HappyWhale().get_DataSet()
 
-    # dataset sampler
-    train_sampler, val_sampler = get_sampler(train_cfg['DDP'], train_dataset, val_dataset)
-    
     # dataloader
-    train_dataloader = DataLoader(train_dataset, batch_size=train_cfg['BATCH_SIZE'], num_workers=num_workers, drop_last=True, pin_memory=True, sampler=train_sampler)
-    val_dataloader = DataLoader(val_dataset, batch_size=eval_cfg['BATCH_SIZE'], num_workers=num_workers, pin_memory=True, sampler=val_sampler)
+    train_dataloader, val_dataloader, classes, len_of_train =HappyWhaleDataset.prepare_loaders()
+
 
     # training model
-    model = get_model(cfg['MODEL']['NAME'], cfg['MODEL']['VARIANT'], None, len(train_dataset.CLASSES), train_cfg['IMAGE_SIZE'][0])
+    model = get_model(cfg['MODEL']['NAME'], cfg['MODEL']['VARIANT'], None, classes, train_cfg['IMAGE_SIZE'][0])
     model = model.to(device)
 
     if train_cfg['DDP']: model = DDP(model, device_ids=[gpu])
@@ -69,12 +60,12 @@ def main(cfg, gpu, save_dir):
     scheduler = get_scheduler(cfg['SCHEDULER'], optimizer)
     scaler = GradScaler(enabled=train_cfg['AMP'])
     writer = SummaryWriter(save_dir / 'logs')
-    iters_per_epoch = len(train_dataset) // train_cfg['BATCH_SIZE']
+    iters_per_epoch = len_of_train // train_cfg['BATCH_SIZE']
 
     for epoch in range(epochs):
         model.train()
         
-        if train_cfg['DDP']: train_sampler.set_epoch(epoch)
+        # if train_cfg['DDP']: train_sampler.set_epoch(epoch)
         train_loss = 0.0
         pbar = tqdm(enumerate(train_dataloader), total=iters_per_epoch, desc=f"Epoch: [{epoch+1}/{epochs}] Iter: [{0}/{iters_per_epoch}] LR: {lr:.8f} Loss: {train_loss:.8f}")
         
