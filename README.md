@@ -1,14 +1,4 @@
 # <div align="center">SOTA Image Classification Models in PyTorch</div>
-
-<div align="center">
-<p>Intended for easy to use and integrate SOTA image classification models into object detection, semantic segmentation, pose estimation, etc.</p>
-
-<a href="https://colab.research.google.com/github/sithu31296/image-classification/blob/main/tutorial.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
-
-</div>
-
-![visiontransformer](assests/vit_banner.png)
-
 ## <div align="center">Model Zoo</div>
 
 [micronet]: https://arxiv.org/abs/2108.05894v1
@@ -126,8 +116,8 @@ File: assests\dog.jpg >>>>> Golden retriever
 </details>
 
 <br>
-<details>
-  <summary><strong>Training</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>Training</strong></summary>
 
 ```bash
 $ python tools/train.py --cfg configs/train.yaml
@@ -136,8 +126,8 @@ $ python tools/train.py --cfg configs/train.yaml
 </details>
 
 <br>
-<details>
-  <summary><strong>Evaluate</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>Evaluate</strong></summary>
 
 ```bash
 $ python tools/val.py --cfg configs/train.yaml
@@ -146,8 +136,8 @@ $ python tools/val.py --cfg configs/train.yaml
 </details>
 
 <br>
-<details>
-  <summary><strong>Fine-tune</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>Fine-tune</strong></summary>
 
 Fine-tune on CIFAR-10:
 
@@ -158,8 +148,8 @@ $ python tools/finetune.py --cfg configs/finetune.yaml
 </details>
 
 <br>
-<details>
-  <summary><strong>References</strong> (click to expand)</summary>
+<details open>
+  <summary><strong>References</strong></summary>
 
 * https://github.com/rwightman/pytorch-image-models
 * https://github.com/facebookresearch/deit
@@ -168,7 +158,7 @@ $ python tools/finetune.py --cfg configs/finetune.yaml
 
 <br>
 <details>
-  <summary><strong>Citations</strong> (click to expand)</summary>
+  <summary><strong>Citations</strong></summary>
 
 ```
 @misc{li2021micronet,
